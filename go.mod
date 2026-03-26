@@ -4,6 +4,8 @@ go 1.26.1
 
 require github.com/go-ping/ping v1.2.0
 
+require github.com/cheatsnake/gtl v0.0.0-20241120173539-6ecdd20ceccd
+
 require (
 	github.com/google/uuid v1.2.0 // indirect
 	golang.org/x/net v0.52.0 // indirect

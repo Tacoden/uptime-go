@@ -1,5 +1,10 @@
 {
     "interval_seconds": 10,
+    "cooldown": 3,
+    "resumenotificationsafterhours": 1,
+
+    "Bot_Token": "Enter your bot token here",
+    "Chat_Id": "enter your chat id here",
 
     "target_ip_addresses": [
         "192.168.86.34",
