@@ -1,0 +1,40 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/go-ping/ping"
+)
+
+type Config struct {
+	IPAddresses []string `json:"target_ip_addresses"`
+}
+
+func main() {
+	file, err := os.ReadFile("config.json")
+	if err != nil {
+		panic(err)
+	}
+
+	var config Config
+	err = json.Unmarshal(file, &config)
+	if err != nil {
+		panic(err)
+	}
+
+	for i, ip := range config.IPAddresses {
+		fmt.Printf("IP %d: %s\n", i+1, ip)
+
+		pinger, err := ping.NewPinger(ip)
+		if err != nil {
+			panic(err)
+		}
+
+		pinger.Count = 3
+		pinger.Run()
+		stats := pinger.Statistics()
+		fmt.Printf("%+v\n", stats)
+	}
+}
