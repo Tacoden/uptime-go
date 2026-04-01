@@ -7,8 +7,6 @@
     "Chat_Id": "enter your chat id here",
 
     "target_ip_addresses": [
-        "192.168.86.34",
-        "192.168.86.32",
         "www.google.com"
     ]
 
