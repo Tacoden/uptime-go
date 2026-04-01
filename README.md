@@ -48,8 +48,8 @@ curl -fL -o uptime-go_linux_amd64.tar.gz https://github.com/Tacoden/uptime-go/re
 For amd64:
 
 ```bash
-mkdir -p uptime-go-release
-tar -xzf uptime-go_linux_amd64.tar.gz -C uptime-go-release
+mkdir -p uptime-go
+tar -xzf uptime-go_linux_amd64.tar.gz -C uptime-go
 ```
 
 3. Change into the extracted folder:
