@@ -103,12 +103,12 @@ find_release_asset_url() {
   api_url="https://api.github.com/repos/${repo}/releases/latest"
   json="$(curl -fsSL "${api_url}")"
 
-  RELEASE_TAG="$(printf '%s' "${json}" | tr '\n' ' ' | sed -nE 's/.*"tag_name":"([^"]+)".*/\1/p')"
+  RELEASE_TAG="$(printf '%s' "${json}" | tr '\n' ' ' | sed -nE 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p')"
   if [[ -z "${RELEASE_TAG}" ]]; then
     RELEASE_TAG="unknown"
   fi
 
-  urls="$(printf '%s' "${json}" | tr '\n' ' ' | grep -Eo '"browser_download_url":"[^"]+"' | sed -E 's/^"browser_download_url":"(.*)"$/\1/')"
+  urls="$(printf '%s' "${json}" | tr '\n' ' ' | grep -Eo '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"]+"' | sed -E 's/^"browser_download_url"[[:space:]]*:[[:space:]]*"(.*)"$/\1/')"
 
   if [[ -z "${urls}" ]]; then
     echo ""
