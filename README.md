@@ -32,3 +32,28 @@ At its core, `uptime-go` provides a minimal uptime-checking workflow for self-ho
 > If you are running this project today, think of it as a minimal monitoring core that can be expanded with notifications and scheduling.
 
 ---
+
+## Installation
+
+Copy and paste this command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Tacoden/uptime-go/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
+```
+
+What the installer does:
+
+- Detects your Linux architecture
+- Downloads the latest matching binary release asset from GitHub
+- Installs files into `/opt/uptime-go`
+- Tries to enable ping socket capability via `setcap`
+- Falls back to root mode if capability setup is not available
+- Optionally configures a `systemd` service for 24/7 auto-start
+
+At the end, it prints the config path:
+
+```bash
+/opt/uptime-go/config.json
+```
+
+Edit that file and add your settings before running in production.
