@@ -7,14 +7,13 @@ BIN_PATH="${APP_DIR}/${APP_NAME}"
 CONFIG_PATH="${APP_DIR}/config.json"
 SERVICE_NAME="${APP_NAME}.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
-REPO="${GITHUB_REPOSITORY:-Tacoden/uptime-go}"
-RELEASE_TAG="unknown"
-RELEASE_EXTRACT_DIR=""
 
 CAP_ENABLED=false
 FALLBACK_ROOT=false
 
 current_user="${SUDO_USER:-${USER:-root}}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_BIN_PATH=""
 
 print_banner() {
   cat <<'EOF'
@@ -40,116 +39,21 @@ require_cmd() {
   fi
 }
 
-detect_repo() {
-  if [[ -n "${REPO}" ]]; then
+detect_local_binary() {
+  if [[ -x "${SCRIPT_DIR}/${APP_NAME}" ]]; then
+    LOCAL_BIN_PATH="${SCRIPT_DIR}/${APP_NAME}"
     return 0
   fi
 
-  if command -v git >/dev/null 2>&1; then
-    local origin
-    origin="$(git config --get remote.origin.url 2>/dev/null || true)"
-    if [[ "${origin}" =~ github.com[:/]([^/]+)/([^/.]+)(\.git)?$ ]]; then
-      REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
-      return 0
-    fi
-  fi
-
-  read -r -p "Enter GitHub repo (owner/repo): " REPO
-  if [[ ! "${REPO}" =~ ^[^/]+/[^/]+$ ]]; then
-    echo "Invalid repo format. Expected owner/repo."
-    exit 1
-  fi
-}
-
-detect_platform() {
-  local os arch
-  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  arch="$(uname -m)"
-
-  case "${os}" in
-    linux)
-      ;;
-    *)
-      echo "Unsupported OS: ${os}. This installer currently supports Linux only."
-      exit 1
-      ;;
-  esac
-
-  case "${arch}" in
-    x86_64|amd64)
-      arch="amd64"
-      ;;
-    aarch64|arm64)
-      arch="arm64"
-      ;;
-    armv7l)
-      arch="armv7"
-      ;;
-    *)
-      echo "Unsupported architecture: ${arch}"
-      exit 1
-      ;;
-  esac
-
-  echo "${os}" "${arch}"
-}
-
-find_release_asset_url() {
-  local repo="$1"
-  local os="$2"
-  local arch="$3"
-  local api_url json urls
-
-  api_url="https://api.github.com/repos/${repo}/releases/latest"
-  json="$(curl -fsSL "${api_url}")"
-
-  RELEASE_TAG="$(printf '%s' "${json}" | tr '\n' ' ' | sed -nE 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p')"
-  if [[ -z "${RELEASE_TAG}" ]]; then
-    RELEASE_TAG="unknown"
-  fi
-
-  urls="$(printf '%s' "${json}" | tr '\n' ' ' | grep -Eo '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"]+"' | sed -E 's/^"browser_download_url"[[:space:]]*:[[:space:]]*"(.*)"$/\1/')"
-
-  if [[ -z "${urls}" ]]; then
-    echo ""
+  if [[ -x "${SCRIPT_DIR}/main" ]]; then
+    LOCAL_BIN_PATH="${SCRIPT_DIR}/main"
     return 0
   fi
 
-  printf '%s\n' "${urls}" | grep -Ei "${os}.*(${arch}|x86_64|aarch64).*\.(tar\.gz|tgz|zip)$|${APP_NAME}$" | head -n 1
-}
-
-install_release_binary() {
-  local asset_url="$1"
-  local tmp_dir asset_file extract_dir found_bin
-
-  tmp_dir="$(mktemp -d)"
-  extract_dir="${tmp_dir}/extract"
-  RELEASE_EXTRACT_DIR="${extract_dir}"
-  mkdir -p "${extract_dir}"
-  trap 'rm -rf "${tmp_dir}"' EXIT
-
-  asset_file="${tmp_dir}/asset"
-  echo "Downloading latest release asset: ${asset_url}"
-  curl -fL "${asset_url}" -o "${asset_file}"
-
-  if [[ "${asset_url}" == *.tar.gz || "${asset_url}" == *.tgz ]]; then
-    tar -xzf "${asset_file}" -C "${extract_dir}"
-  elif [[ "${asset_url}" == *.zip ]]; then
-    require_cmd unzip
-    unzip -q "${asset_file}" -d "${extract_dir}"
-  else
-    cp "${asset_file}" "${extract_dir}/${APP_NAME}"
-  fi
-
-  found_bin="$(find "${extract_dir}" -type f -name "${APP_NAME}" | head -n 1)"
-  if [[ -z "${found_bin}" ]]; then
-    echo "Downloaded asset did not contain ${APP_NAME}."
-    exit 1
-  fi
-
-  echo "Installing application files into ${APP_DIR}..."
-  sudo mkdir -p "${APP_DIR}"
-  sudo install -m 755 "${found_bin}" "${BIN_PATH}"
+  echo "Could not find a local executable binary in ${SCRIPT_DIR}."
+  echo "Expected one of: ${APP_NAME} or main"
+  echo "Extract the release archive first, then run install.sh from that folder."
+  exit 1
 }
 
 ask_yes_no() {
@@ -188,42 +92,23 @@ WantedBy=multi-user.target
 EOF
 }
 
-require_cmd curl
-require_cmd tar
-
-detect_repo
-read -r target_os target_arch < <(detect_platform)
-
-asset_url="$(find_release_asset_url "${REPO}" "${target_os}" "${target_arch}")"
-if [[ -z "${asset_url}" ]]; then
-  echo "Could not find a matching release asset for ${target_os}/${target_arch} in ${REPO}."
-  echo "Set GITHUB_REPOSITORY=owner/repo if auto-detection picked the wrong repo."
-  exit 1
-fi
-
 print_banner
-echo "Version: ${RELEASE_TAG}"
 echo
 
-echo "Using GitHub repository: ${REPO}"
-install_release_binary "${asset_url}"
+detect_local_binary
+echo "Using local binary: ${LOCAL_BIN_PATH}"
+
+echo "Installing application files into ${APP_DIR}..."
+sudo mkdir -p "${APP_DIR}"
+sudo install -m 755 "${LOCAL_BIN_PATH}" "${BIN_PATH}"
 
 if [[ -f "${CONFIG_PATH}" ]]; then
   echo "Config already exists at ${CONFIG_PATH}; keeping existing file."
 elif [[ -f "config.json" ]]; then
   sudo install -m 644 "config.json" "${CONFIG_PATH}"
   echo "Created config at ${CONFIG_PATH} from local config.json."
-elif [[ -n "${RELEASE_EXTRACT_DIR}" ]]; then
-  release_config="$(find "${RELEASE_EXTRACT_DIR}" -type f -name "config.json" | head -n 1 || true)"
-  if [[ -n "${release_config}" ]]; then
-    sudo install -m 644 "${release_config}" "${CONFIG_PATH}"
-    echo "Created config at ${CONFIG_PATH} from release asset."
-  else
-    echo "No config.json found locally or in release asset."
-    echo "Create ${CONFIG_PATH} manually before first run."
-  fi
 else
-  echo "No config.json source found."
+  echo "No local config.json found in ${SCRIPT_DIR}."
   echo "Create ${CONFIG_PATH} manually before first run."
 fi
 

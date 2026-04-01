@@ -35,16 +35,39 @@ At its core, `uptime-go` provides a minimal uptime-checking workflow for self-ho
 
 ## Installation
 
-Copy and paste this command:
+1. Download a release archive:
+
+Linux amd64:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Tacoden/uptime-go/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
+curl -fL -o uptime-go_linux_amd64.tar.gz https://github.com/Tacoden/uptime-go/releases/latest/download/uptime-go_linux_amd64.tar.gz
+```
+
+2. Create a folder and extract the archive into it.
+
+For amd64:
+
+```bash
+mkdir -p uptime-go-release
+tar -xzf uptime-go_linux_amd64.tar.gz -C uptime-go-release
+```
+
+3. Change into the extracted folder:
+
+```bash
+cd uptime-go-release
+```
+
+4. Run the installer:
+
+```bash
+chmod +x install.sh
+./install.sh
 ```
 
 What the installer does:
 
-- Detects your Linux architecture
-- Downloads the latest matching binary release asset from GitHub
+- Uses the local release files you extracted
 - Installs files into `/opt/uptime-go`
 - Tries to enable ping socket capability via `setcap`
 - Falls back to root mode if capability setup is not available
