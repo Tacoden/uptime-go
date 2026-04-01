@@ -103,6 +103,9 @@ func Ping(config Config) {
 			continue
 		}
 
+		// Use privileged ICMP mode so Linux file capabilities (CAP_NET_RAW) apply.
+		pinger.SetPrivileged(true)
+
 		pinger.Count = 3
 		if err := pinger.Run(); err != nil {
 			msg := fmt.Sprintf("Ping run failed for %s: \n%v", ip, err)

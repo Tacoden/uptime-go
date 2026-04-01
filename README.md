@@ -80,3 +80,7 @@ At the end, it prints the config path:
 ```
 
 Edit that file and add your settings before running in production.
+
+then enter sudo systemctl restart uptime-go
+
+
