@@ -93,37 +93,41 @@ EOF
 }
 
 print_banner
-echo
+echo "==============================================="
 
 detect_local_binary
-echo "Using local binary: ${LOCAL_BIN_PATH}"
+echo "Using binary: ${LOCAL_BIN_PATH}"
+echo
 
 echo "Installing application files into ${APP_DIR}..."
 sudo mkdir -p "${APP_DIR}"
 sudo install -m 755 "${LOCAL_BIN_PATH}" "${BIN_PATH}"
+echo "✓ Binary installed"
+echo
 
 if [[ -f "${CONFIG_PATH}" ]]; then
-  echo "Config already exists at ${CONFIG_PATH}; keeping existing file."
+  echo "Config already exists at ${CONFIG_PATH}"
 elif [[ -f "config.json" ]]; then
   sudo install -m 644 "config.json" "${CONFIG_PATH}"
-  echo "Created config at ${CONFIG_PATH} from local config.json."
+  echo "✓ Config created"
 else
-  echo "No local config.json found in ${SCRIPT_DIR}."
-  echo "Create ${CONFIG_PATH} manually before first run."
+  echo "⚠ No config.json found - create manually at ${CONFIG_PATH}"
 fi
+echo
 
-echo "Attempting to enable raw socket capability with setcap..."
+echo "Setting up raw socket capability..."
 if command -v setcap >/dev/null 2>&1 && command -v getcap >/dev/null 2>&1; then
   if sudo setcap cap_net_raw+ep "${BIN_PATH}"; then
     CAP_ENABLED=true
-    echo "setcap successful:"
+    echo "✓ CAP_NET_RAW enabled:"
     getcap "${BIN_PATH}" || true
   else
-    echo "setcap failed."
+    echo "✗ setcap failed"
   fi
 else
-  echo "setcap/getcap tools are not installed (libcap utilities missing)."
+  echo "✗ libcap tools not installed (setcap/getcap missing)"
 fi
+echo
 
 if [[ "${CAP_ENABLED}" != "true" ]]; then
   echo
@@ -156,8 +160,13 @@ else
 fi
 
 echo
+echo "==============================================="
+echo "Installation complete!"
+echo "==============================================="
+echo
+
 if [[ "${FALLBACK_ROOT}" == "true" ]]; then
-  echo "Manual run (root fallback):"
+  echo "Manual run (requires root):"
   echo "  cd ${APP_DIR} && sudo ${BIN_PATH}"
 else
   echo "Manual run:"
@@ -165,6 +174,8 @@ else
 fi
 
 echo
-echo "Next step: edit your config file and add your details:"
-echo "  ${CONFIG_PATH}"
-echo "Example: sudo nano ${CONFIG_PATH}"
+echo "Next: Edit your config file"
+echo "  sudo nano ${CONFIG_PATH}"
+echo
+echo "Restart service after config changes:"
+echo "  sudo systemctl restart ${SERVICE_NAME}"

@@ -79,10 +79,13 @@ At the end, it prints the config path:
 /opt/uptime-go/config.json
 ```
 
+5. After installation, edit the config file and restart the service:
+
+```bash
+sudo systemctl restart uptime-go.service
+```
+
 Edit that file and add your settings before running in production.
 
-then enter sudo systemctl restart uptime-go
 
-clean up install script print text
 
-rename binary to "main"
