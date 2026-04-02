@@ -8,7 +8,7 @@ import (
 
 	"github.com/cheatsnake/gtl"
 
-	"github.com/go-ping/ping"
+	probing "github.com/prometheus-community/pro-bing"
 )
 
 type Config struct {
@@ -95,7 +95,7 @@ func Ping(config Config) {
 	for i, ip := range config.IPAddresses {
 		fmt.Printf("IP %d: %s\n", i+1, ip)
 
-		pinger, err := ping.NewPinger(ip)
+		pinger, err := probing.NewPinger(ip)
 		if err != nil {
 			msg := fmt.Sprintf("Ping setup failed for %s: \n%v", ip, err)
 			fmt.Println(msg)
