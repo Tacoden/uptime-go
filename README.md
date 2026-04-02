@@ -83,4 +83,6 @@ Edit that file and add your settings before running in production.
 
 then enter sudo systemctl restart uptime-go
 
+clean up install script print text
 
+rename binary to "main"
