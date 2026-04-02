@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -107,18 +108,42 @@ func Ping(config Config) {
 		pinger.SetPrivileged(true)
 
 		pinger.Count = 3
-		if err := pinger.Run(); err != nil {
-			msg := fmt.Sprintf("Ping run failed for %s: \n%v", ip, err)
+		pinger.Timeout = 10 * time.Second
+
+		// Create a context with timeout to force termination if pinger.Run() hangs
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Run ping in a goroutine to allow timeout control
+		done := make(chan error, 1)
+		go func() {
+			done <- pinger.Run()
+		}()
+
+		// Wait for either completion or timeout
+		select {
+		case err := <-done:
+			if err != nil {
+				msg := fmt.Sprintf("Ping run failed for %s: \n%v", ip, err)
+				fmt.Println(msg)
+				if ShouldSendPingRunFailedNotification(config) {
+					SendTelegram(config, msg, true)
+				} else {
+					fmt.Println("Ping run failure notification suppressed by cooldown/resume settings")
+				}
+				continue
+			}
+			stats := pinger.Statistics()
+			fmt.Printf("%+v\n", stats)
+		case <-ctx.Done():
+			msg := fmt.Sprintf("Ping timeout for %s (no response after 10 seconds)", ip)
 			fmt.Println(msg)
 			if ShouldSendPingRunFailedNotification(config) {
 				SendTelegram(config, msg, true)
 			} else {
-				fmt.Println("Ping run failure notification suppressed by cooldown/resume settings")
+				fmt.Println("Ping timeout notification suppressed by cooldown/resume settings")
 			}
-			continue
 		}
-		stats := pinger.Statistics()
-		fmt.Printf("%+v\n", stats)
 	}
 }
 
